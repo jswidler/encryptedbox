@@ -1,7 +1,7 @@
-targets := $(wildcard *.go) 
+targets := $(wildcard *.go)
 
 .PHONY: all
-all: test
+all: test benchmarks examples
 
 .PHONY: test
 test: test-format test-reports
@@ -9,6 +9,10 @@ test: test-format test-reports
 .PHONY: test-format
 test-format: $(targets)
 	test -z $$(gofmt -l .)
+
+.PHONY: benchmarks
+benchmarks: $(targets)
+	go test  -benchmem -bench . -run=^$$ github.com/jswidler/encryptedbox
 
 .PHONY: test-reports
 test-reports: build/coverage.html build/go-test-report.xml
@@ -26,3 +30,12 @@ build/go-test-report.xml: build/go-test.out
 .PHONY: clean
 clean:
 	rm -rf build
+
+.PHONY: examples
+examples: examples/*
+	@set -e; \
+	for dir in $^ ; do \
+		echo "Running $${dir}/main.go:" ; \
+		go run $${dir}/main.go ; \
+		echo "" ; \
+	done

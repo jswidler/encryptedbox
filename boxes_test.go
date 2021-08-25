@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jswidler/encryptedbox/aesutil"
+	"github.com/jswidler/encryptedbox/rsautil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,10 +17,45 @@ var interfaceTests = []interface{}{
 	[]interface{}{true, 103.0, "a string", nil},
 }
 
-func TestDefaultAESWithInterface(t *testing.T) {
-	key, err := GenerateAESKey()
+func TestAESHelloWorld(t *testing.T) {
+	key, err := aesutil.NewKey256()
 	assert.NoError(t, err)
-	cipher := AESCipher(key)
+	cipher, _ := NewAESCipher(key)
+
+	testMessage := "Hello world!"
+	ciphertext, err := cipher.EncryptToString(testMessage)
+	assert.NoError(t, err)
+
+	var decrypted string
+	err = cipher.DecryptString(ciphertext, &decrypted)
+	assert.NoError(t, err)
+
+	assert.Equal(t, testMessage, decrypted)
+	t.Logf("message: %s; encrypted: %s", testMessage, ciphertext)
+}
+
+func TestRSAHelloWorld(t *testing.T) {
+	key, _, err := rsautil.NewKey2048()
+	assert.NoError(t, err)
+	cipher, err := NewRSACipher(key)
+	assert.NoError(t, err)
+
+	testMessage := "Hello world!"
+	ciphertext, err := cipher.EncryptToString(testMessage)
+	assert.NoError(t, err)
+
+	var decrypted string
+	err = cipher.DecryptString(ciphertext, &decrypted)
+	assert.NoError(t, err)
+
+	assert.Equal(t, testMessage, decrypted)
+	t.Logf("message: %s; encrypted: %s", testMessage, ciphertext)
+}
+
+func TestDefaultAESWithInterface(t *testing.T) {
+	key, err := aesutil.NewKey256()
+	assert.NoError(t, err)
+	cipher, _ := NewAESCipher(key)
 	for _, test := range interfaceTests {
 		// Encrypt to bytes
 		out, err := cipher.Encrypt(test)
@@ -39,9 +76,10 @@ func TestDefaultAESWithInterface(t *testing.T) {
 }
 
 func TestDefaultRSAWithInterface(t *testing.T) {
-	key, err := GenerateRSAKey()
+	privateKey, _, err := rsautil.NewKey2048()
 	assert.NoError(t, err)
-	cipher := RSACipher(key)
+	cipher, err := NewRSACipher(privateKey)
+	assert.NoError(t, err)
 	for _, test := range interfaceTests {
 		// Encrypt to bytes
 		out, err := cipher.Encrypt(test)
@@ -62,7 +100,7 @@ func TestDefaultRSAWithInterface(t *testing.T) {
 }
 
 func TestCompression(t *testing.T) {
-	key, err := GenerateAESKey()
+	key, err := aesutil.NewKey128()
 	assert.NoError(t, err)
 	message := "a very compressible message "
 	for len(message) < 1000 {
@@ -70,8 +108,10 @@ func TestCompression(t *testing.T) {
 	}
 
 	// Encrypt without any compression
+	encrypter, err := AES(key)
+	assert.NoError(t, err)
 	cipher := Cipher{
-		Encrypter:  AES(key),
+		Encrypter:  encrypter,
 		Serializer: String,
 	}
 	var out string
@@ -101,22 +141,47 @@ func TestCompression(t *testing.T) {
 }
 
 func TestMultiblockRSA(t *testing.T) {
-	key, err := GenerateRSAKey()
+	privateKey, _, err := rsautil.NewKey2048()
 	assert.NoError(t, err)
+	encrypter, err := RSA(privateKey)
+	assert.NoError(t, err)
+	cipher := Cipher{
+		Encrypter:  encrypter,
+		Serializer: String,
+	}
+
 	message := "0123456789ABCDEF"
 	for len(message) < 10000 {
 		message += message
 	}
-	cipher := Cipher{
-		Encrypter:  RSA(key),
-		Serializer: String,
-	}
+
 	var dst string
 	ciphertext, err := cipher.Encrypt(message)
 	assert.NoError(t, err)
 	err = cipher.Decrypt(ciphertext, &dst)
 	assert.NoError(t, err)
 	assert.Equal(t, message, dst)
+}
+
+func TestRSAEncryptWithPublic(t *testing.T) {
+	testMessage := "Hello world!"
+	privateKey, publicKey, err := rsautil.NewKey2048()
+	assert.NoError(t, err)
+
+	encCipher, err := NewRSAEncryptOnlyCipher(publicKey)
+	assert.NoError(t, err)
+
+	ciphertext, err := encCipher.EncryptToString(testMessage)
+	assert.NoError(t, err)
+
+	decCipher, err := NewRSACipher(privateKey)
+	assert.NoError(t, err)
+
+	var decrypted string
+	err = decCipher.DecryptString(ciphertext, &decrypted)
+	assert.NoError(t, err)
+
+	assert.Equal(t, testMessage, decrypted)
 }
 
 func TestJSON(t *testing.T) {
@@ -132,10 +197,12 @@ func TestJSON(t *testing.T) {
 		return &s
 	}
 
-	key, err := GenerateAESKey()
+	key, err := aesutil.NewKey256()
+	assert.NoError(t, err)
+	encrypter, err := AES(key)
 	assert.NoError(t, err)
 	cipher := Cipher{
-		Encrypter:  AES(key),
+		Encrypter:  encrypter,
 		Compressor: Zlib,
 		Serializer: JSON,
 	}
@@ -154,7 +221,7 @@ func TestJSON(t *testing.T) {
 
 	err = cipher.Decrypt(ciphertext, &dst)
 	assert.NoError(t, err)
-	assert.Equal(t, s.Time, dst.Time)
+	assert.Equal(t, s, dst)
 }
 
 func TestBytes(t *testing.T) {
@@ -162,10 +229,12 @@ func TestBytes(t *testing.T) {
 	_, err := rand.Read(b)
 	assert.NoError(t, err)
 
-	key, err := GenerateAESKey()
+	key, err := aesutil.NewKey256()
+	assert.NoError(t, err)
+	encrypter, err := AES(key)
 	assert.NoError(t, err)
 	cipher := Cipher{
-		Encrypter:  AES(key),
+		Encrypter:  encrypter,
 		Serializer: Bytes,
 	}
 	ciphertext, err := cipher.Encrypt(b)

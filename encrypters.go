@@ -6,31 +6,40 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha512"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
+
+	"github.com/jswidler/encryptedbox/rsautil"
 )
 
-func AES(key []byte) Encrypter {
-	return &aesEnc{key}
+// AES will return a symmetric Encrypter using AES
+func AES(key []byte) (Encrypter, error) {
+	l := len(key)
+	if l != 32 && l != 24 && l != 16 {
+		return nil, errors.New("AES keys must be 16, 24, or 32 bytes")
+	}
+	return &aesEnc{key}, nil
 }
 
-func RSA(key *rsa.PrivateKey) Encrypter {
-	return rsaEnc{privateKey: key, publicKey: &key.PublicKey}
+// RSA will return an asymmetric Encrypter using RSA
+func RSA(privateKeyPem []byte) (Encrypter, error) {
+	key, err := rsautil.PemToPrivateKey(privateKeyPem)
+	if err != nil {
+		return nil, err
+	}
+	return rsaEnc{privateKey: key, publicKey: &key.PublicKey}, err
 }
 
-func RSAEncryptOnly(key *rsa.PublicKey) Encrypter {
-	return rsaEnc{publicKey: key}
-}
-
-func GenerateAESKey() ([]byte, error) {
-	b := make([]byte, 32)
-	_, err := rand.Read(b)
-	return b, err
-}
-
-func GenerateRSAKey() (*rsa.PrivateKey, error) {
-	return rsa.GenerateKey(rand.Reader, 2048)
+// RSAEncryptOnly will return an asymmetric Encrypter using RSA
+// which can only Encrypt.
+func RSAEncryptOnly(publicKeyPem []byte) (Encrypter, error) {
+	key, err := rsautil.PemToPublicKey(publicKeyPem)
+	if err != nil {
+		return nil, err
+	}
+	return rsaEnc{publicKey: key}, err
 }
 
 type aesEnc struct {

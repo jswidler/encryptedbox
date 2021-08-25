@@ -1,34 +1,62 @@
 package encryptedbox
 
 import (
-	"crypto/rsa"
 	"encoding/base64"
 )
 
-// A Packer produces encrypted messages, and
 type Cipher struct {
-	Serializer    Serializer
-	Compressor    Compressor
-	Encrypter     Encrypter
+	// Serializer performs the first (or final) step of converting the input data to a []byte
+	Serializer Serializer
+
+	// Compressor is an optional component to compress the output (or input) of the Serializer.
+	Compressor Compressor
+
+	// Encrypter controls the encryption and decryption steps.
+	Encrypter Encrypter
+
+	// StringEncoder must implement the StringEncoder interface
+	//
+	// It is suggested to use base64.RawURLEncoding.
+	//
+	// There are many Encodings from "encoding/base32", "encoding/base64",
+	// and "encoding/hex" which satisfy the StringEncoder interface
 	StringEncoder StringEncoder
 }
 
-func AESCipher(aesKey []byte) *Cipher {
+func NewAESCipher(aesKey []byte) (*Cipher, error) {
+	encrypter, err := AES(aesKey)
+	if err != nil {
+		return nil, err
+	}
 	return &Cipher{
 		Serializer:    JSON,
-		Compressor:    Zlib,
-		Encrypter:     AES(aesKey),
+		Encrypter:     encrypter,
 		StringEncoder: base64.RawURLEncoding,
-	}
+	}, nil
 }
 
-func RSACipher(rsaKey *rsa.PrivateKey) *Cipher {
+func NewRSACipher(privateKeyPem []byte) (*Cipher, error) {
+	encrypter, err := RSA(privateKeyPem)
+	if err != nil {
+		return nil, err
+	}
 	return &Cipher{
 		Serializer:    JSON,
-		Compressor:    Zlib,
-		Encrypter:     RSA(rsaKey),
+		Encrypter:     encrypter,
 		StringEncoder: base64.RawURLEncoding,
+	}, nil
+}
+
+func NewRSAEncryptOnlyCipher(publicKeypem []byte) (*Cipher, error) {
+	encrypter, err := RSAEncryptOnly(publicKeypem)
+	if err != nil {
+		return nil, err
 	}
+	return &Cipher{
+		Serializer:    JSON,
+		Encrypter:     encrypter,
+		StringEncoder: base64.RawURLEncoding,
+	}, nil
 }
 
 func (c Cipher) Encrypt(data interface{}) ([]byte, error) {
@@ -64,11 +92,20 @@ func (c Cipher) EncryptToString(data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if c.StringEncoder == nil {
+		return base64.RawURLEncoding.EncodeToString(ciphertext), nil
+	}
 	return c.StringEncoder.EncodeToString(ciphertext), nil
 }
 
 func (c Cipher) DecryptString(ciphertext string, dst interface{}) error {
-	b, err := c.StringEncoder.DecodeString(ciphertext)
+	var b []byte
+	var err error
+	if c.StringEncoder == nil {
+		b, err = base64.RawURLEncoding.DecodeString(ciphertext)
+	} else {
+		b, err = c.StringEncoder.DecodeString(ciphertext)
+	}
 	if err != nil {
 		return err
 	}
