@@ -8,7 +8,7 @@ import (
 
 var Zlib Compressor = ZlibCompression(zlib.BestCompression)
 
-func ZlibCompression(level int) zlibCompressor {
+func ZlibCompression(level int) Compressor {
 	return zlibCompressor{level}
 }
 
