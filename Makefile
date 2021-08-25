@@ -15,7 +15,7 @@ benchmarks: $(targets)
 	go test  -benchmem -bench . -run=^$$ github.com/jswidler/encryptedbox
 
 .PHONY: test-reports
-test-reports: build/coverage.html build/go-test-report.xml
+test-reports: build/coverage.html
 
 build/c.out build/go-test.out: $(targets)
 	mkdir -p build
@@ -23,9 +23,6 @@ build/c.out build/go-test.out: $(targets)
 
 build/coverage.html: build/c.out
 	go tool cover -html=build/c.out -o build/coverage.html
-
-build/go-test-report.xml: build/go-test.out
-	go-junit-report <build/go-test.out > build/go-test-report.xml
 
 .PHONY: clean
 clean:

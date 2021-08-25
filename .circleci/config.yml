@@ -9,7 +9,6 @@ jobs:
         keys:
         - go-mod-v1-{{ checksum "go.sum" }}
     - run: go mod download
-    - run: go install github.com/jstemmer/go-junit-report@v0.9.1
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}
         paths:
