@@ -27,9 +27,9 @@ func AES(key []byte) (Encrypter, error) {
 func RSA(privateKeyPem []byte) (Encrypter, error) {
 	key, err := rsautil.PemToPrivateKey(privateKeyPem)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read RSA private key: %w", err)
 	}
-	return rsaEnc{privateKey: key, publicKey: &key.PublicKey}, err
+	return rsaEnc{privateKey: key, publicKey: &key.PublicKey}, nil
 }
 
 // RSAEncryptOnly will return an asymmetric Encrypter using RSA
@@ -37,9 +37,9 @@ func RSA(privateKeyPem []byte) (Encrypter, error) {
 func RSAEncryptOnly(publicKeyPem []byte) (Encrypter, error) {
 	key, err := rsautil.PemToPublicKey(publicKeyPem)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read RSA public key: %w", err)
 	}
-	return rsaEnc{publicKey: key}, err
+	return rsaEnc{publicKey: key}, nil
 }
 
 type aesEnc struct {
@@ -47,15 +47,16 @@ type aesEnc struct {
 }
 
 func (a aesEnc) Encrypt(plaintext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(a.key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init aes cipher: %v", err)
-	}
 	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
 	iv := ciphertext[:aes.BlockSize]
+
+	block, err := aes.NewCipher(a.key)
+	if err != nil {
+		return nil, err
+	}
 	_, err = io.ReadFull(rand.Reader, iv)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create aes initialization vector: %v", err)
+		return nil, fmt.Errorf("insufficient random: %w", err)
 	}
 	stream := cipher.NewCFBEncrypter(block, iv)
 	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
@@ -63,14 +64,17 @@ func (a aesEnc) Encrypt(plaintext []byte) ([]byte, error) {
 }
 
 func (a aesEnc) Decrypt(ciphertext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(a.key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init aes cipher: %v", err)
-	} else if len(ciphertext) < aes.BlockSize {
-		return nil, fmt.Errorf("failed to decrypt: %v", err)
+	// We expect at least 1 block, which is used for the IV
+	if len(ciphertext) < aes.BlockSize {
+		return nil, errors.New("invalid ciphertext")
 	}
 	iv := ciphertext[:aes.BlockSize]
 	ciphertext = ciphertext[aes.BlockSize:]
+
+	block, err := aes.NewCipher(a.key)
+	if err != nil {
+		return nil, err
+	}
 	stream := cipher.NewCFBDecrypter(block, iv)
 	plaintext := make([]byte, len(ciphertext))
 	stream.XORKeyStream(plaintext, ciphertext)

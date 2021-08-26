@@ -23,7 +23,7 @@ func main() {
 	// Enable zlib compression.  The default uses zlib.BestCompression.
 	cipher.Compressor = encryptedbox.Zlib
 	// If you want to use a different level of compression, use the following:
-	//cipher.Compressor = encryptedbox.ZlibCompression(zlib.BestSpeed)
+	// cipher.Compressor = encryptedbox.ZlibCompression(zlib.BestSpeed)
 
 	// We will use raw strings.  The default JSON Serializer would still work, but it
 	// is less efficient since it will JSON encode the string.

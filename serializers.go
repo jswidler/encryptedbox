@@ -3,6 +3,7 @@ package encryptedbox
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
 var (
@@ -52,9 +53,17 @@ func (bytesSerializer) Deserialize(data []byte, dst interface{}) error {
 type jsonSerializer struct{}
 
 func (jsonSerializer) Serialize(s interface{}) ([]byte, error) {
-	return json.Marshal(s)
+	b, err := json.Marshal(s)
+	if err != nil {
+		return nil, fmt.Errorf("json serialization failed: %w", err)
+	}
+	return b, nil
 }
 
 func (jsonSerializer) Deserialize(d []byte, v interface{}) error {
-	return json.Unmarshal(d, v)
+	err := json.Unmarshal(d, v)
+	if err != nil {
+		return fmt.Errorf("json deserialization failed: %w", err)
+	}
+	return nil
 }

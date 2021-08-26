@@ -13,9 +13,9 @@ func NewKey256() ([]byte, error) {
 	return b, err
 }
 
-// GenerateAESKey will generate a new 32 byte key for AES-192
+// GenerateAESKey will generate a new 24 byte key for AES-192
 //
-// AES-191 is probably secure and will be better performant than 256, but
+// AES-192 is probably secure and will be better performant than 256, but
 // AES-256 is recommended anyway.
 func NewKey192() ([]byte, error) {
 	b := make([]byte, 24)
@@ -23,7 +23,7 @@ func NewKey192() ([]byte, error) {
 	return b, err
 }
 
-// GenerateAESKey will generate a new 32 byte key for AES-128
+// GenerateAESKey will generate a new 16 byte key for AES-128
 //
 // AES-128 is probably secure and will be better performant than 256, but
 // AES-256 is recommended anyway.

@@ -23,6 +23,12 @@ type Cipher struct {
 	StringEncoder StringEncoder
 }
 
+// DefaultStringEncoder is the default encoder to use for Cipher.EncryptToString()
+// and Cipher.DecryptString().
+//
+// This value is filled into the Cipher struct by the NewXXXCipher functions.
+var DefaultStringEncoder StringEncoder = base64.RawURLEncoding
+
 func NewAESCipher(aesKey []byte) (*Cipher, error) {
 	encrypter, err := AES(aesKey)
 	if err != nil {
@@ -31,7 +37,7 @@ func NewAESCipher(aesKey []byte) (*Cipher, error) {
 	return &Cipher{
 		Serializer:    JSON,
 		Encrypter:     encrypter,
-		StringEncoder: base64.RawURLEncoding,
+		StringEncoder: DefaultStringEncoder,
 	}, nil
 }
 
@@ -43,7 +49,7 @@ func NewRSACipher(privateKeyPem []byte) (*Cipher, error) {
 	return &Cipher{
 		Serializer:    JSON,
 		Encrypter:     encrypter,
-		StringEncoder: base64.RawURLEncoding,
+		StringEncoder: DefaultStringEncoder,
 	}, nil
 }
 
@@ -55,7 +61,7 @@ func NewRSAEncryptOnlyCipher(publicKeypem []byte) (*Cipher, error) {
 	return &Cipher{
 		Serializer:    JSON,
 		Encrypter:     encrypter,
-		StringEncoder: base64.RawURLEncoding,
+		StringEncoder: DefaultStringEncoder,
 	}, nil
 }
 
@@ -92,20 +98,11 @@ func (c Cipher) EncryptToString(data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if c.StringEncoder == nil {
-		return base64.RawURLEncoding.EncodeToString(ciphertext), nil
-	}
 	return c.StringEncoder.EncodeToString(ciphertext), nil
 }
 
 func (c Cipher) DecryptString(ciphertext string, dst interface{}) error {
-	var b []byte
-	var err error
-	if c.StringEncoder == nil {
-		b, err = base64.RawURLEncoding.DecodeString(ciphertext)
-	} else {
-		b, err = c.StringEncoder.DecodeString(ciphertext)
-	}
+	b, err := c.StringEncoder.DecodeString(ciphertext)
 	if err != nil {
 		return err
 	}
