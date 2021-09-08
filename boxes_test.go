@@ -20,7 +20,8 @@ var interfaceTests = []interface{}{
 func TestAESHelloWorld(t *testing.T) {
 	key, err := aesutil.NewKey256()
 	assert.NoError(t, err)
-	cipher, _ := NewAESCipher(key)
+	cipher, err := NewAESCipher(key)
+	assert.NoError(t, err)
 
 	testMessage := "Hello world!"
 	ciphertext, err := cipher.EncryptToString(testMessage)

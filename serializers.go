@@ -1,6 +1,8 @@
 package encryptedbox
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +12,7 @@ var (
 	String Serializer = stringSerializer{}
 	Bytes  Serializer = bytesSerializer{}
 	JSON   Serializer = jsonSerializer{}
+	Gob    Serializer = gobSerializer{}
 )
 
 type stringSerializer struct{}
@@ -64,6 +67,27 @@ func (jsonSerializer) Deserialize(d []byte, v interface{}) error {
 	err := json.Unmarshal(d, v)
 	if err != nil {
 		return fmt.Errorf("json deserialization failed: %w", err)
+	}
+	return nil
+}
+
+type gobSerializer struct{}
+
+func (gobSerializer) Serialize(s interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	err := encoder.Encode(s)
+	if err != nil {
+		return nil, fmt.Errorf("gob serialization failed: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+func (gobSerializer) Deserialize(d []byte, v interface{}) error {
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err := decoder.Decode(v)
+	if err != nil {
+		return fmt.Errorf("gob deserialization failed: %w", err)
 	}
 	return nil
 }

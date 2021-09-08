@@ -8,6 +8,14 @@ type Encrypter interface {
 	Decrypt(ciphertext []byte) ([]byte, error)
 }
 
+// The Signer type signs and verify []byte.
+//
+// Signers must know how to find the key they require as the key is not passed in as a function argument.
+type Signer interface {
+	Sign(data []byte) ([]byte, error)
+	Verify(data []byte, signature []byte) error
+}
+
 // The Compressor type compresses and decompresses []byte.
 type Compressor interface {
 	Compress([]byte) ([]byte, error)
