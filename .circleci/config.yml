@@ -13,7 +13,7 @@ jobs:
         key: go-mod-v1-{{ checksum "go.sum" }}
         paths:
         - "/go/pkg/mod"
-    - run: make test benchmarks examples
+    - run: make test examples
     - store_test_results:
         path: build
     - store_artifacts:

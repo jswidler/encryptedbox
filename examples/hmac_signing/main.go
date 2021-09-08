@@ -47,7 +47,6 @@ func main() {
 
 	// To avoid breaking signatures across versions, it might be required to use
 	// the exact form that was signed, in which case a deserialized version can be produced.
-	// This assumes the
 	deserialized := DataV2{}
 	err = signer.VerifyAndLoad(serializedData, sig, &deserialized)
 	if err != nil {
@@ -55,6 +54,6 @@ func main() {
 	}
 
 	// Because we serialized to json, we can read the raw bytes as a string.
-	fmt.Printf("signed bytes: %+v\n", string(serializedData))
+	fmt.Printf("signed JSON bytes: %+v\n", string(serializedData))
 	fmt.Printf("signature: %s\n", sig)
 }

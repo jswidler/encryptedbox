@@ -135,11 +135,3 @@ func TestBinarySigning(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "hello world", s)
 }
-
-func newCipher(t *testing.T, keyFunc func() ([]byte, error), cipherFunc func(key []byte) (*Cipher, error)) *Cipher {
-	key, err := keyFunc()
-	assert.NoError(t, err)
-	cipher, err := cipherFunc(key)
-	assert.NoError(t, err)
-	return cipher
-}

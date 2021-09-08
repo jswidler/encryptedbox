@@ -19,8 +19,6 @@ type Cipher struct {
 
 	// StringEncoder must implement the StringEncoder interface
 	//
-	// It is suggested to use base64.RawURLEncoding.
-	//
 	// There are many Encodings from "encoding/base32", "encoding/base64",
 	// and "encoding/hex" which satisfy the StringEncoder interface
 	StringEncoder StringEncoder

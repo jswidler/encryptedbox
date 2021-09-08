@@ -1,7 +1,7 @@
 targets := $(wildcard *.go)
 
 .PHONY: all
-all: test benchmarks examples
+all: test examples
 
 .PHONY: test
 test: test-format test-reports

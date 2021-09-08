@@ -100,57 +100,8 @@ func TestDefaultRSAWithInterface(t *testing.T) {
 	}
 }
 
-func TestCompression(t *testing.T) {
-	key, err := aesutil.NewKey128()
-	assert.NoError(t, err)
-	message := "a very compressible message "
-	for len(message) < 1000 {
-		message += message
-	}
-
-	// Encrypt without any compression
-	encrypter, err := AES(key)
-	assert.NoError(t, err)
-	cipher := Cipher{
-		Encrypter:  encrypter,
-		Serializer: String,
-	}
-	var out string
-	ciphertext, err := cipher.Encrypt(message)
-	assert.NoError(t, err)
-	err = cipher.Decrypt(ciphertext, &out)
-	assert.NoError(t, err)
-
-	assert.GreaterOrEqual(t, len(ciphertext), len(message),
-		"ciphertext must be at least as long as the original (via pigeonhole principle)")
-	assert.Equal(t, message, out)
-
-	// Turn on compression and check it is shorter
-	cipher.Compressor = Zlib
-	out = ""
-	compressedCiphertext, err := cipher.Encrypt(message)
-	assert.NoError(t, err)
-	err = cipher.Decrypt(compressedCiphertext, &out)
-	assert.NoError(t, err)
-
-	assert.Less(t, len(compressedCiphertext), len(ciphertext))
-	assert.Equal(t, message, out)
-
-	// message length: 7168, encrypted length 7184, encrypted with compression: 88
-	t.Logf("message length: %d, encrypted length %d, encrypted with compression: %d",
-		len(message), len(ciphertext), len(compressedCiphertext))
-}
-
 func TestMultiblockRSA(t *testing.T) {
-	privateKey, _, err := rsautil.NewKey2048()
-	assert.NoError(t, err)
-	encrypter, err := RSA(privateKey)
-	assert.NoError(t, err)
-	cipher := Cipher{
-		Encrypter:  encrypter,
-		Serializer: String,
-	}
-
+	cipher := newCipher(t, rsaPrivateKey2048, NewRSACipher)
 	message := "0123456789ABCDEF"
 	for len(message) < 10000 {
 		message += message
@@ -198,15 +149,9 @@ func TestJSON(t *testing.T) {
 		return &s
 	}
 
-	key, err := aesutil.NewKey256()
-	assert.NoError(t, err)
-	encrypter, err := AES(key)
-	assert.NoError(t, err)
-	cipher := Cipher{
-		Encrypter:  encrypter,
-		Compressor: Zlib,
-		Serializer: JSON,
-	}
+	cipher := newCipher(t, rsaPrivateKey2048, NewRSACipher)
+	cipher.Compressor = Zlib
+
 	ts, err := time.Parse(time.RFC3339, "2021-08-24T15:39:16.929335-07:00")
 	assert.NoError(t, err)
 	s := TestStruct{
@@ -244,4 +189,17 @@ func TestBytes(t *testing.T) {
 	err = cipher.Decrypt(ciphertext, &dst)
 	assert.NoError(t, err)
 	assert.Equal(t, b, dst)
+}
+
+func newCipher(t *testing.T, keyFunc func() ([]byte, error), cipherFunc func(key []byte) (*Cipher, error)) *Cipher {
+	key, err := keyFunc()
+	assert.NoError(t, err)
+	cipher, err := cipherFunc(key)
+	assert.NoError(t, err)
+	return cipher
+}
+
+func rsaPrivateKey2048() ([]byte, error) {
+	privateKey, _, err := rsautil.NewKey2048()
+	return privateKey, err
 }
