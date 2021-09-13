@@ -9,7 +9,7 @@ EncryptedBox provides a Cipher component which can be configured to encrypt and 
 1. [Encrypt](#encryption)
 1. [(Optional) Encode encrypted data as a string](#encode-encrypted-data-as-a-string)
 
-The inverse steps must be done in reverse order when decrypting.  Encryptedbox allows you fit these pieces together in a way where the implementation for any of the steps can be easily changed to suite your needs.
+The inverse steps must be done in reverse order when decrypting.  Encryptedbox allows you fit these pieces together in a way where the implementation for any of the steps can be easily changed to suit your needs.
 
 ### Serialization
 
