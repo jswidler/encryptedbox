@@ -8,8 +8,10 @@ import (
 	"io"
 )
 
-var Zlib Compressor = ZlibCompression(zlib.BestCompression)
-var Gzip Compressor = GzipCompression(gzip.BestCompression)
+var (
+	Zlib Compressor = ZlibCompression(zlib.BestCompression)
+	Gzip Compressor = GzipCompression(gzip.BestCompression)
+)
 
 func GzipCompression(level int) Compressor {
 	return gzipCompressor{level}
