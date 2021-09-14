@@ -38,22 +38,29 @@ func main() {
 		panic(err)
 	}
 
+	// Because we serialized to json, we can read the raw bytes as a string.
+	fmt.Printf("signed JSON bytes: %+v\n", string(serializedData))
+	fmt.Printf("signature: %s\n", sig)
+
 	// If you are able to reproduce the original data structure in a way that will be serialized
 	// exactly the same as the first time, you can verify against that.
-	err = signer.Verify(myData, sig)
+	err = signer.Verify(Data{
+		Greeting: "Hello world!",
+		Pi:       3.1415927,
+	}, sig)
 	if err != nil {
 		panic(err)
 	}
 
-	// To avoid breaking signatures across versions, it might be required to use
-	// the exact form that was signed, in which case a deserialized version can be produced.
+	fmt.Println("signature verified")
+
+	// To avoid breaking signatures across versions, it may be required to use
+	// the exact form that was signed, in which case a deserialized version is produced.
 	deserialized := DataV2{}
 	err = signer.VerifyAndLoad(serializedData, sig, &deserialized)
 	if err != nil {
 		panic(err)
 	}
 
-	// Because we serialized to json, we can read the raw bytes as a string.
-	fmt.Printf("signed JSON bytes: %+v\n", string(serializedData))
-	fmt.Printf("signature: %s\n", sig)
+	fmt.Printf("verified and loaded: %+v\n", deserialized)
 }
