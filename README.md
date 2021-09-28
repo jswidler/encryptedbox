@@ -17,7 +17,7 @@ The inverse steps must be done in reverse order when decrypting.  Encryptedbox a
 
 ### Serialization
 
-Encryption works binary data, so the first step to encrypt anything is to turn it into a stream of bytes.
+Encryption works on binary data, so the first step to encrypt anything is to turn it into a stream of bytes.
 
 encryptedbox can work with easily with Go data structures by serializing them into JSON.  You can also use other provided serializers or create your own to pack your structs into binary more efficiently.
 
