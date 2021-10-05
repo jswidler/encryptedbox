@@ -47,38 +47,36 @@ type aesEnc struct {
 }
 
 func (a aesEnc) Encrypt(plaintext []byte) ([]byte, error) {
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
-
 	block, err := aes.NewCipher(a.key)
 	if err != nil {
 		return nil, err
 	}
-	_, err = io.ReadFull(rand.Reader, iv)
+	aead, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, fmt.Errorf("insufficient random: %w", err)
+		return nil, err
 	}
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
-	return ciphertext, nil
+	nonce := make([]byte, aead.NonceSize())
+	_, err = io.ReadFull(rand.Reader, nonce)
+	if err != nil {
+		return nil, err
+	}
+	return aead.Seal(nonce[:], nonce[:], plaintext, nil), nil
 }
 
 func (a aesEnc) Decrypt(ciphertext []byte) ([]byte, error) {
-	// We expect at least 1 block, which is used for the IV
-	if len(ciphertext) < aes.BlockSize {
-		return nil, errors.New("invalid ciphertext")
-	}
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-
 	block, err := aes.NewCipher(a.key)
 	if err != nil {
 		return nil, err
 	}
-	stream := cipher.NewCFBDecrypter(block, iv)
-	plaintext := make([]byte, len(ciphertext))
-	stream.XORKeyStream(plaintext, ciphertext)
-	return plaintext, nil
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	nonceSize := aead.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, errors.New("invalid ciphertext")
+	}
+	return aead.Open(nil, ciphertext[:nonceSize], ciphertext[nonceSize:], nil)
 }
 
 type rsaEnc struct {
